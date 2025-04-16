@@ -40,6 +40,8 @@ void SkeletalModel::setJointTransform(int jointIndex, float rX, float rY, float 
 
     joint->setRotation(glm::vec3(rX, rY, rZ));
 
+
+    // create rotation matrix using XYZ order
     glm::mat4 rotationM = glm::rotate(glm::mat4(1.0f), glm::radians(rX), glm::vec3(1.0f, 0.0f, 0.0f)) *
                           glm::rotate(glm::mat4(1.0f), glm::radians(rY), glm::vec3(0.0f, 1.0f, 0.0f)) *
                           glm::rotate(glm::mat4(1.0f), glm::radians(rZ), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -48,11 +50,12 @@ void SkeletalModel::setJointTransform(int jointIndex, float rX, float rY, float 
 
     //code to replace newTransform rotation portion with rotationM
 
+    glm::vec3 translation = glm::vec3(joint->getTransform()[3]);
+    glm::mat4 translationM = glm::translate(glm::mat4(1.0f), translation);
 
 
-    joint->setTransform(newTransform);
-
-
+  // Combine translation and rotation (TR order for local transforms)
+    joint->setTransform(translationM * rotationM);
 
     
 }
@@ -74,8 +77,7 @@ void bindWorldToJointTransformRecursive(Joint* joint, MatrixStack& myStack) {
     }
     
     
-    
-    
+    myStack.pop();
     
 
 }
@@ -93,8 +95,10 @@ void SkeletalModel::computeBindWorldToJointTransforms() {
 
 
     m_matrixStack.clear();
-    bindWorldToJointTransformRecursive(m_rootJoint, m_matrixStack);
 
+    if(m_rootJoint) {
+        bindWorldToJointTransformRecursive(m_rootJoint, m_matrixStack);
+    }
 
 
 
@@ -103,9 +107,6 @@ void SkeletalModel::computeBindWorldToJointTransforms() {
 void SkeletalModel::currentJointToWorldTransformsRecursive(Joint* joint, MatrixStack& myStack) {
 
     // 4.4.1.2. Recursive function for updateCurrentJointToWorldTransforms()
-    //
-    //
-    
     
     myStack.push(joint->getTransform());
 
@@ -132,13 +133,12 @@ void SkeletalModel::updateCurrentJointToWorldTransforms() {
     // You will need to add a recursive helper function to traverse the joint hierarchy.
 	
     m_matrixStack.clear();
-    currentJointToWorldTransformsRecursive(m_rootJoint, m_matrixStack);
+
+    if(m_rootJoint) {
+        currentJointToWorldTransformsRecursive(m_rootJoint, m_matrixStack);
 
 
-
-
-
-
+    }
 
 }
 
