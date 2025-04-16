@@ -23,7 +23,7 @@ glm::mat4 MatrixStack::top() const {
 
     //return(last item in the std:vector list);
 
-
+    return m_matrices.back();
 
 }
 
@@ -36,9 +36,10 @@ void MatrixStack::push(const glm::mat4& m) {
     // calculate last item on m_matrices and multiply it by m
     // add calculation to the end of m_matrices
 
-
-
+    glm::mat4 newTop = m_matrices.back() * m; // Multiply current top with new matrix
+    m_matrices.push_back(newTop); // Push composite matrix
 }
+
 
 void MatrixStack::pop() {
 
@@ -48,6 +49,8 @@ void MatrixStack::pop() {
     // check if m_matrices >1 (size is greater than 1)
    // std:vector item to remove top of stack
 
-
+   if (m_matrices.size() > 1) { // Prevent popping base identity
+    m_matrices.pop_back();
+   }
 }
 
