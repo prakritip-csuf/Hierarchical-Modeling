@@ -36,9 +36,21 @@ void SkeletalModel::setJointTransform(int jointIndex, float rX, float rY, float 
     // 
     //
 
+    Joint* joint = m_joints[jointIndex];
+
+    joint->setRotation(glm::vec3(rX, rY, rZ));
+
+    glm::mat4 rotationM = glm::rotate(glm::mat4(1.0f), glm::radians(rX), glm::vec3(1.0f, 0.0f, 0.0f)) *
+                          glm::rotate(glm::mat4(1.0f), glm::radians(rY), glm::vec3(0.0f, 1.0f, 0.0f)) *
+                          glm::rotate(glm::mat4(1.0f), glm::radians(rZ), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    glm::mat4 newTransform = joint->getTransform();
+
+    //code to replace newTransform rotation portion with rotationM
 
 
 
+    joint->setTransform(newTransform);
 
 
 
@@ -52,6 +64,14 @@ void bindWorldToJointTransformRecursive(Joint* joint, MatrixStack& myStack) {
     //
     //
     
+    myStack.push(joint->getTransform());
+
+    joint->setBindWorldToJointTransform(glm::inverse(myStack.top()));
+
+    for (auto* child : joint->getChildren()) {
+
+        bindWorldToJointTransformRecursive(child, myStack);
+    }
     
     
     
@@ -72,7 +92,8 @@ void SkeletalModel::computeBindWorldToJointTransforms() {
     // You will need to add a recursive helper function to traverse the joint hierarchy.
 
 
-
+    m_matrixStack.clear();
+    bindWorldToJointTransformRecursive(m_rootJoint, m_matrixStack);
 
 
 
@@ -86,10 +107,16 @@ void SkeletalModel::currentJointToWorldTransformsRecursive(Joint* joint, MatrixS
     //
     
     
+    myStack.push(joint->getTransform());
+
+    joint->setCurrentJointToWorldTransform(myStack.top());
     
+    for (auto* child : joint->getChildren()) {
+
+        currentJointToWorldTransformsRecursive(child, myStack);
+    }
     
-    
-    
+    myStack.pop();
 
 }
 
@@ -104,7 +131,8 @@ void SkeletalModel::updateCurrentJointToWorldTransforms() {
     // This method should update each joint's bindWorldToJointTransform.
     // You will need to add a recursive helper function to traverse the joint hierarchy.
 	
-
+    m_matrixStack.clear();
+    currentJointToWorldTransformsRecursive(m_rootJoint, m_matrixStack);
 
 
 

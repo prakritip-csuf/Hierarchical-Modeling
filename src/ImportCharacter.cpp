@@ -99,7 +99,12 @@ void ImportCharacter::setupJointBuffer() {
     // 
     //
 
+    //clear existing data
+    if (jointVAO) glDeleteVertexArrays(1, &jointVAO);
+    if (jointVBO) glDeleteBuffers(1, &jointVBO);
+    if (jointEBO) glDeleteBuffers(1, &jointEBO);
 
+    
 
 
 
