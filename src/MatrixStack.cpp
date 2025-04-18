@@ -23,14 +23,13 @@ glm::mat4 MatrixStack::top() const {
 
     //return(last item in the std:vector list);
 
-    return m_matrices.back();
+    return m_matrices.empty() ? glm::mat4(1.0f) : m_matrices.back();
 
 }
 
 void MatrixStack::push(const glm::mat4& m) {
 
-    // 3.1.4. Push m onto the stack.
-    // Your stack should have OpenGL semantics:
+    // 3.1.4. Push m onto the stack. Your stack should have OpenGL semantics:
     // the new top should be the old top multiplied by m
 
     // calculate last item on m_matrices and multiply it by m

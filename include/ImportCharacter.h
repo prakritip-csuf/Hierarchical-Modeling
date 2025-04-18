@@ -79,6 +79,8 @@ private:
     GLuint boneVAO, boneVBO, boneEBO;
 
     float jointIndexCount, boneIndexCount;
+
+    Joint* findParent(Joint* child); 
 };
 
 #endif // IMPORTCHARACTER_H
