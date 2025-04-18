@@ -1,6 +1,5 @@
 #include "ImportCharacter.h"
 #include <iostream>
-#include <functional>
 
 ImportCharacter::ImportCharacter(float x, float y, float z, float scale, int colorIndex, int id)
     : Shape(x, y, z, scale, colorIndex, id), m_skeletalModel(),
@@ -94,95 +93,71 @@ void ImportCharacter::setupMeshBuffer() {
 
 void ImportCharacter::setupJointBuffer() {
 
-    // 3.2.2.1. Build the joint mesh using GL_POINTS
-    // Clear existing data
-
+    // 3.2.2.1. Build the joint mesh using GL_POINTS or you can
+    // build a sphere mesh, and create the buffer VAO, VBO, and  
+    // EBO for use.
+    // 
+    
     if (jointVAO) glDeleteVertexArrays(1, &jointVAO);
     if (jointVBO) glDeleteBuffers(1, &jointVBO);
-    if (jointEBO) glDeleteBuffers(1, &jointEBO);
 
     std::vector<glm::vec3> jointPositions;
-    const std::vector<Joint*>& joints = m_skeletalModel.getJoints();
-    MatrixStack matrixStack;
 
-    // Recursively compute joint positions using the matrix stack
-    std::function<void(Joint*)> traverseJoints;
-    traverseJoints = [&](Joint* joint) {
-        matrixStack.push(joint->getTransform());
-        glm::vec4 jointPos = matrixStack.top() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        jointPositions.push_back(glm::vec3(jointPos));
+    for (const auto& joint : m_skeletalModel.getJoints()) {
+        glm::vec3 pos = glm::vec3(joint->getCurrentJointToWorldTransform() * glm::vec4(0, 0, 0, 1));
+        jointPositions.push_back(pos);
+    }
 
-        for (Joint* child : joint->getChildren()) {
-            traverseJoints(child);
-        }
-        matrixStack.pop();
-    };
+    jointIndexCount = static_cast<float>(jointPositions.size());
 
-    traverseJoints(m_skeletalModel.getRootJoint());
-
-    jointIndexCount = static_cast<GLuint>(jointPositions.size());
-
-    // Create buffers
     glGenVertexArrays(1, &jointVAO);
     glGenBuffers(1, &jointVBO);
 
     glBindVertexArray(jointVAO);
-
     glBindBuffer(GL_ARRAY_BUFFER, jointVBO);
     glBufferData(GL_ARRAY_BUFFER, jointPositions.size() * sizeof(glm::vec3), jointPositions.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0); // Position only
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0);
 
+   
+
 }
 
 void ImportCharacter::setupBoneBuffer() {
-    // 3.2.2.2. Build the bone mesh using GL_LINES
-    // Clear existing data
+
+    // 3.2.2.2. Build the bone mesh using GL_LINES or you can
+    // build a cube or cuboid mesh, and create the buffer VAO, VBO, and  
+    // EBO for use.
+    // 
+    //
     
     if (boneVAO) glDeleteVertexArrays(1, &boneVAO);
     if (boneVBO) glDeleteBuffers(1, &boneVBO);
-    if (boneEBO) glDeleteBuffers(1, &boneEBO);
 
-    std::vector<glm::vec3> boneVertices;
-    const std::vector<Joint*>& joints = m_skeletalModel.getJoints();
-    MatrixStack matrixStack;
+    std::vector<glm::vec3> bonePositions;
 
-    // Recursively compute bone vertices using the matrix stack
-    std::function<void(Joint*)> traverseBones;
-    traverseBones = [&](Joint* joint) {
-        matrixStack.push(joint->getTransform());
-        glm::vec4 parentPos = matrixStack.top() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-
-        for (Joint* child : joint->getChildren()) {
-            matrixStack.push(child->getTransform());
-            glm::vec4 childPos = matrixStack.top() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-
-            boneVertices.push_back(glm::vec3(parentPos));
-            boneVertices.push_back(glm::vec3(childPos));
-
-            traverseBones(child);
-            matrixStack.pop();
+    for (const auto& joint : m_skeletalModel.getJoints()) {
+        glm::vec3 parentPos = glm::vec3(joint->getCurrentJointToWorldTransform() * glm::vec4(0, 0, 0, 1));
+        for (const auto& child : joint->getChildren()) {
+            glm::vec3 childPos = glm::vec3(child->getCurrentJointToWorldTransform() * glm::vec4(0, 0, 0, 1));
+            bonePositions.push_back(parentPos);
+            bonePositions.push_back(childPos);
         }
-        matrixStack.pop();
-    };
+    }
 
-    traverseBones(m_skeletalModel.getRootJoint());
+    boneIndexCount = static_cast<float>(bonePositions.size());
 
-    boneIndexCount = static_cast<GLuint>(boneVertices.size());
-
-    // Create buffers
     glGenVertexArrays(1, &boneVAO);
     glGenBuffers(1, &boneVBO);
 
     glBindVertexArray(boneVAO);
-
     glBindBuffer(GL_ARRAY_BUFFER, boneVBO);
-    glBufferData(GL_ARRAY_BUFFER, boneVertices.size() * sizeof(glm::vec3), boneVertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, bonePositions.size() * sizeof(glm::vec3), bonePositions.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0); // Position only
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0);
@@ -231,7 +206,6 @@ void ImportCharacter::setDisplayMode(DisplayMode mode) {
     displayMode = mode;
 }
 
-
 void ImportCharacter::updateMeshVertices() {
 
     // 4.4.2. This is the core of SSD.
@@ -240,26 +214,28 @@ void ImportCharacter::updateMeshVertices() {
     // You will need both the bind pose world --> joint transforms.
     // and the current joint --> world transforms.
 
-    std::vector<glm::vec3> newVertices(vertices.size());
+    m_skeletalModel.updateCurrentJointToWorldTransforms();
 
-    for (size_t i = 0; i < vertices.size(); ++i) {
-        glm::vec4 newPos(0.0f);
+    //vertices.clear();
+    //vertices.resize(bindVertices.size(), glm::vec3(0.0f));
 
-        // Blend influence from each joint
-        for (size_t j = 0; j < m_skeletalModel.getJoints().size(); ++j) {
+    for (size_t i = 0; i < bindVertices.size(); ++i) {
+        glm::vec3 newPos(0.0f);
+
+        for (size_t j = 0; j < attachments[i].size(); ++j) {
             float weight = attachments[i][j];
-            if (weight > 0.0f) {
-                const glm::mat4& B_inv = m_skeletalModel.getJoints()[j]->getBindWorldToJointTransform();
-                const glm::mat4& T = m_skeletalModel.getJoints()[j]->getCurrentJointToWorldTransform();
-                newPos += weight * T * B_inv * glm::vec4(bindVertices[i], 1.0f);
-            }
+            if (weight == 0.0f) continue;
+
+            Joint* joint = m_skeletalModel.getJoints()[j];
+            glm::mat4 T = joint->getCurrentJointToWorldTransform();
+            glm::mat4 B_inv = joint->getBindWorldToJointTransform();
+
+            glm::vec4 transformed = T * B_inv * glm::vec4(bindVertices[i], 1.0f);
+            newPos += weight * glm::vec3(transformed);
         }
 
-        newVertices[i] = glm::vec3(newPos);
+        vertices[i] = newPos;
     }
-
-    vertices = newVertices;
-
    
     setupMeshBuffer();
     setupJointBuffer();
@@ -300,38 +276,20 @@ void ImportCharacter::draw(GLuint shaderProgram) {
         glUniform1i(lightingLoc, 0);
     }
 
-    // additional code
-    // Draw joints
-    glPointSize(8.0f);
-    glUseProgram(shaderProgram); // Use shader program for joints
-    applyTransform(shaderProgram);
+    if (displayMode == SKELETAL) {
+        // Draw joints
+        glPointSize(8.0f);
+        glBindVertexArray(jointVAO);
+        glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(jointIndexCount));
+        glBindVertexArray(0);
+    
+        // Draw bones
+        glLineWidth(2.0f);
+        glBindVertexArray(boneVAO);
+        glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(boneIndexCount));
+        glBindVertexArray(0);
+    }    
 
-    GLint colorJointLoc = glGetUniformLocation(shaderProgram, "material.color");
-        if (colorJointLoc != -1) {
-            glUniform3f(colorJointLoc, 1.0f, 1.0f, 0.0f); // Yellow color for joints
-    }
-
-    glBindVertexArray(jointVAO);
-    glDrawArrays(GL_POINTS, 0, m_skeletalModel.getJoints().size());
-    glBindVertexArray(0);
-    glUseProgram(0); // Unbind shader program
-    glEnable(GL_PROGRAM_POINT_SIZE);
-
-    // Draw bones
-    glUseProgram(shaderProgram); // Use shader program for bones
-    applyTransform(shaderProgram);
-
-    GLint colorBoneLoc = glGetUniformLocation(shaderProgram, "material.color");
-        if (colorBoneLoc != -1) {
-            glUniform3f(colorBoneLoc, 0.0f, 1.0f, 0.0f); // Green color for bones
-    }
-
-    glBindVertexArray(boneVAO);
-    glLineWidth(2.0f);  // optional, makes bones thicker
-    glBindVertexArray(0);
-    glDrawArrays(GL_LINES, 0, m_skeletalModel.getJoints().size() * 2 - 2);
-    glBindVertexArray(0);
-    glUseProgram(0); // Unbind shader program
 }
 
 
@@ -353,11 +311,7 @@ void ImportCharacter::generateSphere(float radius, glm::vec3 center,
                          
 // Extra credit - Helper utility to generate a sphere instead of a point for joints
 
-
-
-
-
-
+    
 
 
 }
@@ -370,13 +324,7 @@ void ImportCharacter::generateCuboid(const glm::vec3& parentPos, const glm::vec3
 
 // Extra credit - Helper utility to generate a cube or cuboid instead of a line for bones
 
-
-
-
-
-
-
-
+    
 
 }
 

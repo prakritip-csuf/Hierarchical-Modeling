@@ -1,4 +1,6 @@
 #include "SkeletalModel.h"
+#include <iostream>
+#include <functional>
 
 SkeletalModel::SkeletalModel() {}
 
@@ -25,7 +27,6 @@ void SkeletalModel::addJointChild(int parentIndex, Joint* child) {
     Joint* parent = m_joints[parentIndex];
     parent->addChild(child);
     m_joints.push_back(child);
-    
 }
 
 void SkeletalModel::setJointTransform(int jointIndex, float rX, float rY, float rZ) {
@@ -37,29 +38,35 @@ void SkeletalModel::setJointTransform(int jointIndex, float rX, float rY, float 
     // 
     //
 
+    if (jointIndex < 0 || jointIndex >= static_cast<int>(m_joints.size())) {
+        std::cerr << "Error: Invalid joint index!" << std::endl;
+        return;
+    }
+
     Joint* joint = m_joints[jointIndex];
 
-    joint->setRotation(glm::vec3(rX, rY, rZ));
+    // Set rotation angles (as Euler angles)
+    glm::vec3 rotation(rX, rY, rZ);
+    joint->setRotation(rotation);
 
+    // Convert degrees to radians
+    float radX = glm::radians(rX);
+    float radY = glm::radians(rY);
+    float radZ = glm::radians(rZ);
 
-    // create rotation matrix using XYZ order
-    glm::mat4 rotationM = glm::rotate(glm::mat4(1.0f), glm::radians(rX), glm::vec3(1.0f, 0.0f, 0.0f)) *
-                          glm::rotate(glm::mat4(1.0f), glm::radians(rY), glm::vec3(0.0f, 1.0f, 0.0f)) *
-                          glm::rotate(glm::mat4(1.0f), glm::radians(rZ), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    //code to replace newTransform rotation portion with rotationM
+    // Build local transform from translation and rotation
+    glm::mat4 rotationMat = glm::rotate(glm::mat4(1.0f), radX, glm::vec3(1, 0, 0));
+    rotationMat = glm::rotate(rotationMat, radY, glm::vec3(0, 1, 0));
+    rotationMat = glm::rotate(rotationMat, radZ, glm::vec3(0, 0, 1));
 
     glm::vec3 translation = glm::vec3(joint->getTransform()[3]);
+    glm::mat4 localTransform = glm::translate(glm::mat4(1.0f), translation);
+    localTransform *= rotationMat;
 
-    glm::mat4 translationM = glm::translate(glm::mat4(1.0f), translation);
-
-    glm::mat4 newTransform = translationM * rotationM;
-
-
-  // Combine translation and rotation (TR order for local transforms)
-    joint->setTransform(newTransform);
-    
+    joint->setTransform(localTransform);
 }
+
+
 
 
 void bindWorldToJointTransformRecursive(Joint* joint, MatrixStack& myStack) {
@@ -67,19 +74,18 @@ void bindWorldToJointTransformRecursive(Joint* joint, MatrixStack& myStack) {
     // 4.4.1.1. Recursive function for computeBindWorldToJointTransforms()
     //
     //
-    
-    myStack.push(joint->getTransform());
+    glm::vec3 translation = glm::vec3(joint->getTransform()[3]);
+    myStack.push(glm::translate(glm::mat4(1.0f), translation));
 
-    joint->setBindWorldToJointTransform(glm::inverse(myStack.top()));
+
+    glm::mat4 worldToJoint = glm::inverse(myStack.top());
+    joint->setBindWorldToJointTransform(worldToJoint);
 
     for (Joint* child : joint->getChildren()) {
-
         bindWorldToJointTransformRecursive(child, myStack);
     }
-    
-    
+
     myStack.pop();
-    
 
 }
 
@@ -94,14 +100,13 @@ void SkeletalModel::computeBindWorldToJointTransforms() {
     // This method should update each joint's bindWorldToJointTransform.
     // You will need to add a recursive helper function to traverse the joint hierarchy.
 
-
-    m_matrixStack.clear();
-    m_matrixStack.push(glm::mat4(1.0f)); // identity matrix
-
-    if(m_rootJoint) {
-        bindWorldToJointTransformRecursive(m_rootJoint, m_matrixStack);
+    if (!m_rootJoint) {
+        std::cerr << "Error: Root joint not set!" << std::endl;
+        return;
     }
 
+    m_matrixStack.clear();
+    //bindWorldToJointTransformRecursive(m_rootJoint, m_matrixStack);
 
 
 }
@@ -109,17 +114,20 @@ void SkeletalModel::computeBindWorldToJointTransforms() {
 void SkeletalModel::currentJointToWorldTransformsRecursive(Joint* joint, MatrixStack& myStack) {
 
     // 4.4.1.2. Recursive function for updateCurrentJointToWorldTransforms()
-    
-    myStack.push(joint->getTransform());
+    //
+    //
+     // Push the current joint’s local transform (setJointTransform must have set this)
+     myStack.push(joint->getTransform());
 
-    joint->setCurrentJointToWorldTransform(myStack.top());
-    
+    glm::mat4 jointToWorld = myStack.top();
+    joint->setCurrentJointToWorldTransform(jointToWorld);
+
     for (Joint* child : joint->getChildren()) {
-
         currentJointToWorldTransformsRecursive(child, myStack);
     }
-    
+
     myStack.pop();
+    
 
 }
 
@@ -134,14 +142,15 @@ void SkeletalModel::updateCurrentJointToWorldTransforms() {
     // This method should update each joint's bindWorldToJointTransform.
     // You will need to add a recursive helper function to traverse the joint hierarchy.
 	
-    m_matrixStack.clear();
-    m_matrixStack.push(glm::mat4(1.0f)); // identity
 
-    if(m_rootJoint) {
-        currentJointToWorldTransformsRecursive(m_rootJoint, m_matrixStack);
-
-
+    if (!m_rootJoint) {
+        std::cerr << "Error: Root joint not set!" << std::endl;
+        return;
     }
+
+    m_matrixStack.clear();
+    currentJointToWorldTransformsRecursive(m_rootJoint, m_matrixStack);
+
 
 }
 
