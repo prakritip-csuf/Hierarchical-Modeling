@@ -35,8 +35,8 @@ void MatrixStack::push(const glm::mat4& m) {
     // calculate last item on m_matrices and multiply it by m
     // add calculation to the end of m_matrices
 
-    glm::mat4 newTop = m_matrices.back() * m; // Multiply current top with new matrix
-    m_matrices.push_back(newTop); // Push composite matrix
+    m_matrices.push_back(m_matrices.back() * m); // Multiply current top with new matrix
+//     m_matrices.push_back(newTop); // Push composite matrix
 }
 
 

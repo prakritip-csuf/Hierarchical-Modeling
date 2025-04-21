@@ -358,25 +358,18 @@ void ImportCharacter::draw(GLuint shaderProgram) {
         glBindVertexArray(0);
     } 
     else if (displayMode == SKELETAL) {
-
-        if (colorLoc != -1) {
             float white[3] = {1.0f, 1.0f, 1.0f};
             glUniform3fv(colorLoc, 1, white);
-        }
 
         // Draw joints
         glBindVertexArray(jointVAO);
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(jointIndexCount), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
-    
+
         // Draw bones (as cuboids)
         glBindVertexArray(boneVAO);
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(boneIndexCount), GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-
-        if (lightingLoc != -1) {
-            glUniform1i(lightingLoc, 0);
-        }
+        glBindVertexArray(0); 
     }
 
     if (lightingLoc != -1) glUniform1i(lightingLoc, 0);
@@ -401,8 +394,8 @@ void ImportCharacter::generateSphere(float radius, glm::vec3 center,
                                       std::vector<glm::uvec3>& jointFaces) {
                          
 // Extra credit - Helper utility to generate a sphere instead of a point for joints
-    int sectorCount = 16; // longitudinal slices
-    int stackCount = 16;  // latitudinal slices
+    int sectorCount = 16; 
+    int stackCount = 16; 
 
     for (int i = 0; i <= stackCount; ++i) {
         float stackAngle = glm::pi<float>() / 2 - i * glm::pi<float>() / stackCount; 
@@ -423,7 +416,7 @@ void ImportCharacter::generateSphere(float radius, glm::vec3 center,
         }
     }
 
-    // Now define faces (as triangle indices)
+    
     for (int i = 0; i < stackCount; ++i) {
         int k1 = i * (sectorCount + 1);
         int k2 = k1 + sectorCount + 1;
@@ -450,34 +443,30 @@ void ImportCharacter::generateCuboid(const glm::vec3& parentPos, const glm::vec3
     glm::vec3 z = glm::normalize(childPos - parentPos);
     float length = glm::length(childPos - parentPos);
 
-    // Build orthonormal basis (z, y, x)
+   
     glm::vec3 rnd(0, 0, 1);
     if (glm::abs(glm::dot(z, rnd)) > 0.99f)
-        rnd = glm::vec3(0, 1, 0); // handle degenerate case
+        rnd = glm::vec3(0, 1, 0); 
 
     glm::vec3 y = glm::normalize(glm::cross(z, rnd));
     glm::vec3 x = glm::normalize(glm::cross(y, z));
 
-    // Transformation matrix: rotation + scale + translate
     glm::mat4 transform(1.0f);
     transform[0] = glm::vec4(x * 0.01f, 0.0f);
     transform[1] = glm::vec4(y * 0.01f, 0.0f);
     transform[2] = glm::vec4(z * length, 0.0f);
     transform[3] = glm::vec4(parentPos, 1.0f);
 
-    // Unit cube vertices from [-0.5, -0.5, 0] to [0.5, 0.5, 1]
     std::vector<glm::vec3> unitCube = {
         {-0.5f, -0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}, {0.5f, 0.5f, 0.0f}, {-0.5f, 0.5f, 0.0f},
         {-0.5f, -0.5f, 1.0f}, {0.5f, -0.5f, 1.0f}, {0.5f, 0.5f, 1.0f}, {-0.5f, 0.5f, 1.0f}
     };
 
-    // Add transformed cube vertices
     for (const auto& v : unitCube) {
         glm::vec4 worldV = transform * glm::vec4(v, 1.0f);
         boneVertices.push_back(glm::vec3(worldV));
     }
 
-    // Cube normals (approximate)
     std::vector<glm::vec3> cubeNormals = {
         {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1},
         {0, 0, 1}, {0, 0, 1}, {0, 0, 1}, {0, 0, 1}
@@ -486,7 +475,6 @@ void ImportCharacter::generateCuboid(const glm::vec3& parentPos, const glm::vec3
         boneNormals.push_back(n);
     }
 
-    // Cube faces (two triangles per face)
     std::vector<glm::uvec3> faces = {
         {0, 1, 2}, {2, 3, 0}, // bottom
         {4, 5, 6}, {6, 7, 4}, // top
