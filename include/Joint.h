@@ -35,6 +35,9 @@ public:
     const std::vector<Joint*>& getChildren() const;
     Joint* getChild(int index) const;
 
+    glm::mat4 getBindTransform() const;
+    void setBindTransform(const glm::mat4& newBindTransform);
+
 private:
     glm::vec3 rotation; // Stores current rotation (x, y, z)
 
@@ -43,6 +46,9 @@ private:
 
     glm::mat4 bindWorldToJointTransform; // Maps world space to joint space in bind position
     glm::mat4 currentJointToWorldTransform; // Maps joint space to world space in current pose
+
+    glm::mat4 bindTransform;  // Local bind transform relative to parent
+
 
 };
 

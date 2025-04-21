@@ -52,7 +52,7 @@ void ImportCharacter::setupMeshBuffer() {
 
         for (int j = 0; j < 3; ++j) {
             int vertexIndex = faces[i][j];
-            const glm::vec3& position = vertices[vertexIndex];
+            const glm::vec3& position = bindVertices[vertexIndex];
 
             // Append position, normal, and color to meshVertices
             meshVertices.insert(meshVertices.end(), {position.x, position.y, position.z});
@@ -216,8 +216,8 @@ void ImportCharacter::updateMeshVertices() {
 
     m_skeletalModel.updateCurrentJointToWorldTransforms();
 
-    //vertices.clear();
-    //vertices.resize(bindVertices.size(), glm::vec3(0.0f));
+    vertices.clear();
+    vertices.resize(bindVertices.size(), glm::vec3(0.0f));
 
     for (size_t i = 0; i < bindVertices.size(); ++i) {
         glm::vec3 newPos(0.0f);
@@ -246,8 +246,6 @@ void ImportCharacter::updateMeshVertices() {
 
 void ImportCharacter::draw(GLuint shaderProgram) {
 
-    updateMeshVertices();
-    
     // Use the shader program
     glUseProgram(shaderProgram);
     
@@ -274,9 +272,19 @@ void ImportCharacter::draw(GLuint shaderProgram) {
     // Disable lighting after drawing the cube (for axis rendering)
     if (lightingLoc != -1) {
         glUniform1i(lightingLoc, 0);
-    }
+    }  
 
-    if (displayMode == SKELETAL) {
+    if (displayMode == MESH) {
+        setupMeshBuffer();
+        // draw bind pose mesh
+        glBindVertexArray(meshVAO);
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(faces.size() * 3), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+    
+    } else if (displayMode == SKELETAL) {
+        updateMeshVertices();
+        // draw SSD-deformed mesh
+
         // Draw joints
         glPointSize(8.0f);
         glBindVertexArray(jointVAO);
@@ -288,7 +296,8 @@ void ImportCharacter::draw(GLuint shaderProgram) {
         glBindVertexArray(boneVAO);
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(boneIndexCount));
         glBindVertexArray(0);
-    }    
+    
+    }
 
 }
 

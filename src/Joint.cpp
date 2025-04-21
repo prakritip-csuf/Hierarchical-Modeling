@@ -23,6 +23,16 @@ void Joint::setTransform(const glm::mat4& newTransform) {
     transform = newTransform;
 }
 
+// Getter and setter for bindTransform 
+glm::mat4 Joint::getBindTransform() const {
+    return bindTransform;
+}
+
+
+void Joint::setBindTransform(const glm::mat4& newBindTransform) {
+    bindTransform = newBindTransform;
+}
+
 // Getter and setter for bindWorldToJointTransform
 glm::mat4 Joint::getBindWorldToJointTransform() const {
     return bindWorldToJointTransform;
