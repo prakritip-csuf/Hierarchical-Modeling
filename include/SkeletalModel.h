@@ -35,16 +35,16 @@ public:
     void updateCurrentJointToWorldTransforms();
 
 
-private:
-
-    void bindWorldToJointTransformRecursive(Joint* joint, MatrixStack& myStack);
-    void currentJointToWorldTransformsRecursive(Joint* joint, MatrixStack& myStack);     
- 
+private:   
     std::vector<Joint*> m_joints;
     Joint* m_rootJoint;
     MatrixStack m_matrixStack;
     std::vector<glm::vec3> jointCenters;
     std::vector<std::pair<glm::vec3, glm::vec3>> bonePairs;    
+
+    void bindWorldToJointTransformRecursive(Joint* joint, MatrixStack& myStack);
+    void currentJointToWorldTransformsRecursive(Joint* joint, MatrixStack& myStack);     
+ 
 };
 
 #endif

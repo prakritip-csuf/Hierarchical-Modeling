@@ -69,16 +69,17 @@ void SkeletalModel::setJointTransform(int jointIndex, float rX, float rY, float 
 
 
 
-void bindWorldToJointTransformRecursive(Joint* joint, MatrixStack& myStack) {
+void SkeletalModel::bindWorldToJointTransformRecursive(Joint* joint, MatrixStack& myStack) {
 
     // 4.4.1.1. Recursive function for computeBindWorldToJointTransforms()
     //
     //
-    glm::vec3 translation = glm::vec3(joint->getTransform()[3]);
-    myStack.push(glm::translate(glm::mat4(1.0f), translation));
+    // Push the full local bind transform
+    myStack.push(joint->getTransform());
 
-
-    glm::mat4 worldToJoint = glm::inverse(myStack.top());
+    // Compute and store the inverse world-to-joint transform in bind pose
+    glm::mat4 jointToWorld = myStack.top();
+    glm::mat4 worldToJoint = glm::inverse(jointToWorld);
     joint->setBindWorldToJointTransform(worldToJoint);
 
     for (Joint* child : joint->getChildren()) {
@@ -106,7 +107,9 @@ void SkeletalModel::computeBindWorldToJointTransforms() {
     }
 
     m_matrixStack.clear();
-    //bindWorldToJointTransformRecursive(m_rootJoint, m_matrixStack);
+    m_matrixStack.push(glm::mat4(1.0f));
+
+    bindWorldToJointTransformRecursive(m_rootJoint, m_matrixStack);
 
 
 }

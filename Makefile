@@ -37,7 +37,7 @@ OBJS = $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(basename $(notdir $(SOURCES)))
 UNAME_S := $(shell uname -s)
 
 CXXFLAGS = -std=c++11 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(IMGUI_HEADERS) -I$(TINYDIALOG_HEADERS) -I$(SRC_HEADER) -I$(GLAD_HEADER)
-CXXFLAGS += -g -Wall -Wformat
+CXXFLAGS += -g 
 
 
 ##---------------------------------------------------------------------
@@ -90,7 +90,7 @@ all: $(EXE)
 	@echo Build complete for $(ECHO_MESSAGE)
 
 $(EXE): $(OBJS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
+	$(CXX) -o $@ $(OBJS) $(CXXFLAGS) $(LIBS)
 
 clean:
 	rm -f $(EXE) $(OBJS)
