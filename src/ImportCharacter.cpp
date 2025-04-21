@@ -246,57 +246,72 @@ void ImportCharacter::updateMeshVertices() {
 
 void ImportCharacter::draw(GLuint shaderProgram) {
 
-    // Use the shader program
-    glUseProgram(shaderProgram);
-    
-    // Enable lighting for the cube
-    GLint lightingLoc = glGetUniformLocation(shaderProgram, "useLighting");
-    if (lightingLoc != -1) {
-        glUniform1i(lightingLoc, 1); // Enable lighting for the cube
-    }
-
-    // Apply transformations and pass to the shader
-    applyTransform(shaderProgram);
-
-    // Pass material properties
-    GLint colorLoc = glGetUniformLocation(shaderProgram, "material.color");
-    if (colorLoc != -1) {
-        glUniform3fv(colorLoc, 1, (colorIndex == 31) ? customColor : colorPresets[colorIndex].color);
-    }
-
-    // Render the character mesh
-    glBindVertexArray(meshVAO);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(faces.size() * 3), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-
-    // Disable lighting after drawing the cube (for axis rendering)
-    if (lightingLoc != -1) {
-        glUniform1i(lightingLoc, 0);
-    }  
-
     if (displayMode == MESH) {
+        // Use shader program
+        glUseProgram(shaderProgram);
+
+        // Enable lighting
+        GLint lightingLoc = glGetUniformLocation(shaderProgram, "useLighting");
+        if (lightingLoc != -1) {
+            glUniform1i(lightingLoc, 1);
+        }
+
+        // Apply transformations
+        applyTransform(shaderProgram);
+
+        // Set material color
+        GLint colorLoc = glGetUniformLocation(shaderProgram, "material.color");
+        if (colorLoc != -1) {
+            glUniform3fv(colorLoc, 1, (colorIndex == 31) ? customColor : colorPresets[colorIndex].color);
+        }
+
+        // Draw mesh only
         setupMeshBuffer();
-        // draw bind pose mesh
         glBindVertexArray(meshVAO);
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(faces.size() * 3), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
-    
-    } else if (displayMode == SKELETAL) {
-        updateMeshVertices();
-        // draw SSD-deformed mesh
+
+        // Disable lighting afterwards
+        if (lightingLoc != -1) {
+            glUniform1i(lightingLoc, 0);
+        }
+    }
+
+    else if (displayMode == SKELETAL) {
+        // Use shader program
+        glUseProgram(shaderProgram);
+
+        // Enable lighting (if needed for skeleton)
+        GLint lightingLoc = glGetUniformLocation(shaderProgram, "useLighting");
+        if (lightingLoc != -1) {
+            glUniform1i(lightingLoc, 1);
+        }
+
+        // Apply transformations
+        applyTransform(shaderProgram);
+
+        // Set material color (optional for joints/bones)
+        GLint colorLoc = glGetUniformLocation(shaderProgram, "material.color");
+        if (colorLoc != -1) {
+            glUniform3fv(colorLoc, 1, (colorIndex == 31) ? customColor : colorPresets[colorIndex].color);
+        }
 
         // Draw joints
         glPointSize(8.0f);
         glBindVertexArray(jointVAO);
         glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(jointIndexCount));
         glBindVertexArray(0);
-    
+
         // Draw bones
         glLineWidth(2.0f);
         glBindVertexArray(boneVAO);
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(boneIndexCount));
         glBindVertexArray(0);
-    
+
+        // Disable lighting afterwards
+        if (lightingLoc != -1) {
+            glUniform1i(lightingLoc, 0);
+        }
     }
 
 }
